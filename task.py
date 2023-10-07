@@ -3,6 +3,8 @@ import os
 import argparse
 import json
 import requests
+import urllib3
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 parser = argparse.ArgumentParser(description='下载任务管理')
 parser.add_argument("--act", help="操作类型：download,del", default="download")
