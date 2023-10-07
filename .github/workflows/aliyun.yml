@@ -18,7 +18,7 @@ jobs:
           REFRESH_TOKEN: '${{ secrets.ALIYUN_REFRESH_TOKEN }}'
           PORT: 8080
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         with:
           persist-credentials: false # otherwise, the token used is the GITHUB_TOKEN, instead of your personal token
           fetch-depth: 0 
@@ -43,6 +43,7 @@ jobs:
         run: |
           python -m pip install --upgrade pip wheel
           pip install install requests
+          pip install install urllib3
       - name: 下载
         id: downloading
         run: |
