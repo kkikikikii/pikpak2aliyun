@@ -6,33 +6,37 @@ on:
       Folder:
         description: '保存目录'
         required: true
-        default: 'PikPak-encrypt'
+        default: 'opop'
 
 jobs:
   Aria2-Aliyun:
     runs-on: ubuntu-latest
-    services:
-      aliyun:
-        image: messense/aliyundrive-webdav
-        env:
-          REFRESH_TOKEN: '${{ secrets.ALIYUN_REFRESH_TOKEN }}'
-          PORT: 8080
     steps:
       - uses: actions/checkout@v2
         with:
           persist-credentials: false # otherwise, the token used is the GITHUB_TOKEN, instead of your personal token
           fetch-depth: 0 
-      - name: 增加可用空间 (删除dotnet, android、haskell、CodeQL)
-        shell: bash
+      - name: gengxing
         run: |
-          sudo rm -rf /usr/share/dotnet
-          sudo rm -rf /usr/local/lib/android
-          sudo rm -rf /opt/ghc
-          sudo rm -rf /opt/hostedtoolcache/CodeQL
+           sudo apt-get update          
       - name: 检查空间使用情况
         run: |
           echo "Free space:"
           df -h
+      - name: Free Disk Space (Ubuntu)
+        uses: jlumbroso/free-disk-space@main
+        with:
+
+        # all of these default to true, but feel free to set to
+        # "false" if necessary for your workflow
+           tool-cache: true
+           android: true
+           dotnet: true
+           haskell: true
+           large-packages: true
+           docker-images: false
+           swap-storage: true   
+         
       - name: 安装Aria2
         run: sudo apt install -y aria2 
       - name: 安装Python3.9
@@ -66,25 +70,23 @@ jobs:
         run: |
            ${{ github.workspace }}/dist/nodejs-linux '${{ secrets.ALIST_ENCRYPT_PASSWORD }}' aesctr enc '${{ github.workspace }}/downloads/' '${{ github.workspace }}/out/' encName
            filename=$(ls out | head -n1)
-           extension=$(awk 'BEGIN{srand();}{a[NR]=$0}END{print a[int(rand()*NR)+1]}' suffixes | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
-           filename_no_suffix="${filename%.*}"
-           newfilename="$filename_no_suffix"."$extension"
-           if [ "$filename" != "$newfilename" ]; then
-            	mv out/$filename out/$newfilename
-           fi
-           sha1_s=`openssl sha1 out/$newfilename | awk '{ print $2 }'`
+           sha1_s=`openssl sha1 out/$filename | awk '{ print $2 }'`
            header="OC-Checksum:sha1:$sha1_s"
            echo "::set-output name=header::$header"
-           echo "::set-output name=filename::$newfilename"
-           echo "::set-output name=path::out/$newfilename"
+           echo "::set-output name=filename::$filename"
+           echo "::set-output name=path::out/$filename"
            size=$(ls -l out/$filename | awk '{print $5}' )
            echo "::set-output name=size::$size"
           
-      - name: 上传到Aliyun
-        uses: thinkdolabs/curl@v1
+      
+      - name: 上传gdcloud
+        uses: wei/rclone@v1
         if: steps.encrypt.outputs.filename != '' && !cancelled() && !failure()
+        env:
+          RCLONE_CONF: ${{ secrets.RCLONE_CONF }}
         with:
-          args: --upload-file ${{ steps.encrypt.outputs.path }}  http://aliyun:8080/${{ github.event.inputs.Folder}}/${{ steps.downloading.encrypt.filename }}
+          args: copy ${{ steps.encrypt.outputs.path }}  onedrive:${{ github.event.inputs.Folder}}/${{ steps.downloading.encrypt.filename }}
+          
           
       - name: 保存数据，删除远程已经下载列表
         id:  database
